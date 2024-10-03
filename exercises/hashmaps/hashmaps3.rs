@@ -18,75 +18,77 @@
 
 use std::collections::HashMap;
 
-#[derive(Hash, PartialEq, Eq)]
-enum Fruit {
-    Apple,
-    Banana,
-    Mango,
-    Lychee,
-    Pineapple,
+// A structure to store the goal details of a team.
+struct Team {
+    goals_scored: u8,
+    goals_conceded: u8,
 }
 
-fn fruit_basket(basket: &mut HashMap<Fruit, u32>) {
-    let fruit_kinds = vec![
-        Fruit::Apple,
-        Fruit::Banana,
-        Fruit::Mango,
-        Fruit::Lychee,
-        Fruit::Pineapple,
-    ];
+fn build_scores_table(results: String) -> HashMap<String, Team> {
+    // The name of the team is the key and its associated struct is the value.
+    let mut scores: HashMap<String, Team> = HashMap::new();
 
-    for fruit in fruit_kinds {
-        // 插入新的水果，如果它们尚未在篮子中存在
-        basket.entry(fruit).or_insert(1); // 使用 entry API 来处理插入逻辑
+    for r in results.lines() {
+        let v: Vec<&str> = r.split(',').collect();
+        let team_1_name = v[0].to_string();
+        let team_1_score: u8 = v[2].parse().unwrap();
+        let team_2_name = v[1].to_string();
+        let team_2_score: u8 = v[3].parse().unwrap();
+
+        // 更新团队1的得分
+        scores.entry(team_1_name.clone()).or_insert(Team { goals_scored: 0, goals_conceded: 0 });
+        let team_1 = scores.get_mut(&team_1_name).unwrap();
+        team_1.goals_scored += team_1_score; // 增加进球数
+        team_1.goals_conceded += team_2_score; // 增加失球数
+
+        // 更新团队2的得分
+        scores.entry(team_2_name.clone()).or_insert(Team { goals_scored: 0, goals_conceded: 0 });
+        let team_2 = scores.get_mut(&team_2_name).unwrap();
+        team_2.goals_scored += team_2_score; // 增加进球数
+        team_2.goals_conceded += team_1_score; // 增加失球数
     }
+    
+    scores
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Don't modify this function!
-    fn get_fruit_basket() -> HashMap<Fruit, u32> {
-        let mut basket = HashMap::<Fruit, u32>::new();
-        basket.insert(Fruit::Apple, 4);
-        basket.insert(Fruit::Mango, 2);
-        basket.insert(Fruit::Lychee, 5);
-
-        basket
+    fn get_results() -> String {
+        let results = "".to_string()
+            + "England,France,4,2\n"
+            + "France,Italy,3,1\n"
+            + "Poland,Spain,2,0\n"
+            + "Germany,England,2,1\n";
+        results
     }
 
     #[test]
-    fn test_given_fruits_are_not_modified() {
-        let mut basket = get_fruit_basket();
-        fruit_basket(&mut basket);
-        assert_eq!(*basket.get(&Fruit::Apple).unwrap(), 4);
-        assert_eq!(*basket.get(&Fruit::Mango).unwrap(), 2);
-        assert_eq!(*basket.get(&Fruit::Lychee).unwrap(), 5);
+    fn build_scores() {
+        let scores = build_scores_table(get_results());
+
+        let mut keys: Vec<&String> = scores.keys().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            vec!["England", "France", "Germany", "Italy", "Poland", "Spain"]
+        );
     }
 
     #[test]
-    fn at_least_five_types_of_fruits() {
-        let mut basket = get_fruit_basket();
-        fruit_basket(&mut basket);
-        let count_fruit_kinds = basket.len();
-        assert!(count_fruit_kinds >= 5);
+    fn validate_team_score_1() {
+        let scores = build_scores_table(get_results());
+        let team = scores.get("England").unwrap();
+        assert_eq!(team.goals_scored, 5);
+        assert_eq!(team.goals_conceded, 4);
     }
 
     #[test]
-    fn greater_than_eleven_fruits() {
-        let mut basket = get_fruit_basket();
-        fruit_basket(&mut basket);
-        let count = basket.values().sum::<u32>();
-        assert!(count > 11);
-    }
-    
-    #[test]
-    fn all_fruit_types_in_basket() {
-        let mut basket = get_fruit_basket();
-        fruit_basket(&mut basket);
-        for amount in basket.values() {
-            assert_ne!(amount, &0);
-        }
+    fn validate_team_score_2() {
+        let scores = build_scores_table(get_results());
+        let team = scores.get("Spain").unwrap();
+        assert_eq!(team.goals_scored, 0);
+        assert_eq!(team.goals_conceded, 2);
     }
 }
